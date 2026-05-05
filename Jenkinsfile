@@ -26,15 +26,16 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    # Jalankan MySQL sementara untuk testing jika diperlukan
-                    # Namun untuk efisiensi di Jenkins, kita bisa menggunakan mock atau DB lokal
-                    # Di sini kita asumsikan tests/ sudah menangani koneksi atau di-skip jika gagal
+                    # Jalankan MySQL sementara untuk testing jika diperlukan.
+                    # Karena kita sudah punya layanan 'todo-db' di docker-compose,
+                    # Jenkins bisa mengaksesnya menggunakan hostname 'todo-db' 
+                    # jika Jenkins berjalan di network yang sama.
                     . venv/bin/activate
-                    export DB_HOST=localhost
+                    export DB_HOST=todo-db
                     export DB_PORT=3306
-                    export DB_USERNAME=root
-                    export DB_PASSWORD=test
-                    export DB_DATABASE=test_db
+                    export DB_USERNAME=${MYSQL_USER:-todo_user}
+                    export DB_PASSWORD=${MYSQL_PASSWORD:-todo_password}
+                    export DB_DATABASE=${MYSQL_DATABASE:-todo_app}
                     # pytest tests/ || echo "Tests failed but continuing for demo"
                     pytest tests/
                 '''
