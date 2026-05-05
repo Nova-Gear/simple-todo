@@ -25,9 +25,12 @@ docker-compose up -d
 
 | Service | URL | Keterangan |
 |---|---|---|
-| Jenkins | `http://localhost:8080` | Pipeline CI/CD |
-| SonarQube | `http://localhost:9000` | Analisis Kualitas Kode |
-| App (Local) | `http://localhost:5001` | Aplikasi running via Docker |
+| Jenkins | `http://localhost:8080` | Alat otomatisasi CI/CD |
+| SonarQube | `http://localhost:9000` | Analisis kualitas kode |
+| **App (Production - K8s)** | **`http://localhost:30001`** | **Jalur utama dengan fitur Autoscaling & Pods** |
+| App (Dev - Docker) | `http://localhost:5001` | Hanya untuk cek build lokal (Tanpa Autoscaling) |
+
+> **PENTING**: Fitur **Horizontal Pod Autoscaler (HPA)** dan penambahan Pods secara otomatis hanya aktif jika Anda mengakses/mengetes melalui jalur **Kubernetes (Port 30001)**.
 
 ---
 
