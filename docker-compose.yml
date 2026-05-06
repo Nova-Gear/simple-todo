@@ -79,7 +79,7 @@ services:
   # --- Simple Todo App (Production-like) ---
   todo-app:
     build: 
-      context: ./repo-temp
+      context: .
       dockerfile: Dockerfile
     container_name: todo-app
     restart: unless-stopped

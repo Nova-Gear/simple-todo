@@ -49,18 +49,23 @@ docker-compose up -d
 
 ---
 
-## ☸️ Kubernetes Deployment
+## ☸️ Kubernetes Deployment (Otomatis)
 
-### 1. Build Image Lokal
-Pastikan image sudah tersedia di Docker lokal sebelum deploy ke K8s.
-```bash
-docker build -t nova-gear/simple-todo:latest ./repo-temp
-```
+Dalam alur ini, **Jenkins menangani seluruh proses** mulai dari build image hingga deployment ke Kubernetes. Anda tidak perlu menjalankan perintah `kubectl apply` secara manual setiap kali ada perubahan kode.
 
-### 2. Deploy ke Cluster
+### 1. Alur Otomatisasi
+- Developer melakukan **Git Push**.
+- Jenkins memulai Pipeline: `Test` ➔ `SonarScan` ➔ `Build Image` ➔ **`Deploy to Kubernetes`**.
+- Jenkins akan menjalankan `kubectl apply -f k8s/` secara otomatis.
+
+### 2. Verifikasi Deployment
+Meskipun otomatis, Anda tetap bisa memastikan status di cluster:
 ```bash
-# Masuk ke folder k8s atau jalankan dari root
-kubectl apply -f k8s/
+# Cek apakah pods sudah terupdate
+kubectl get pods
+
+# Cek status HPA
+kubectl get hpa todo-hpa
 ```
 
 ### 3. Aktifkan Metrics Server (Penting untuk HPA)
@@ -68,6 +73,34 @@ Agar HPA bisa membaca penggunaan CPU, Metrics Server harus aktif:
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
+
+---
+
+## 🚢 GitOps dengan ArgoCD
+
+Aplikasi ini sekarang menggunakan model **GitOps**. Jenkins menangani **CI** (Continuous Integration), dan ArgoCD menangani **CD** (Continuous Deployment).
+
+### 1. Instalasi ArgoCD di Kubernetes
+Jalankan perintah ini untuk menginstal ArgoCD ke dalam cluster Anda:
+```bash
+# Buat namespace
+kubectl create namespace argocd
+
+# Instal ArgoCD
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Akses Dashboard ArgoCD (Port Forward)
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+```
+*Login default: Username `admin`, Password dapat diambil dengan:*
+`kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
+
+### 2. Konfigurasi ArgoCD Application
+Setelah ArgoCD aktif, hubungkan repository Anda:
+```bash
+kubectl apply -f k8s/argocd-app.yaml
+```
+ArgoCD akan memantau folder `k8s/` di repository GitHub Anda dan mensinkronisasikan setiap perubahan manifest ke cluster secara otomatis.
 
 ---
 

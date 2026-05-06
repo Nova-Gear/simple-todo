@@ -7,11 +7,11 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/Nova-Gear/simple-todo.git'
-            }
-        }
+        // stage('Checkout') {
+        //     steps {
+        //         git branch: 'main', url: 'https://github.com/Nova-Gear/simple-todo.git'
+        //     }
+        // }
 
         stage('Environment Setup') {
             steps {
@@ -48,8 +48,6 @@ pipeline {
                     sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner"
                 }
             }
-        }
-
         stage('Docker Build') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
@@ -57,7 +55,16 @@ pipeline {
             }
         }
 
-        // stage('Docker Push') {
+        // --- Model GitOps dengan ArgoCD ---
+        // Dalam model GitOps sejati, Jenkins akan mengupdate tag image di file manifest Git.
+        // Untuk lab ini, ArgoCD akan memantau folder k8s/ dan melakukan sync otomatis.
+        stage('Wait for ArgoCD Sync') {
+            steps {
+                echo "Jenkins selesai melakukan CI. Sekarang ArgoCD akan melakukan deployment otomatis berdasarkan manifest di Git."
+            }
+        }
+    }
+
         //     steps {
         //         withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         //             sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
