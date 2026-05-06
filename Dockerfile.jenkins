@@ -1,0 +1,15 @@
+# Dockerfile.jenkins
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Instal Docker CLI dan Python
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    python3 \
+    python3-venv \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Kembalikan ke user jenkins
+USER jenkins

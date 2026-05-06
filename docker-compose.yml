@@ -1,16 +1,18 @@
 services:
   # --- Jenkins Service ---
   jenkins:
-    image: jenkins/jenkins:${JENKINS_VERSION:-lts}
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins # Gunakan custom Dockerfile
     container_name: jenkins
     restart: unless-stopped
+    user: root # Tambahkan ini sementara agar tidak ada kendala izin pada /var/run/docker.sock
     ports:
       - "${JENKINS_PORT:-8080}:8080"
       - "${JENKINS_AGENT_PORT:-50000}:50000"
     volumes:
       - jenkins_data:/var/jenkins_home
-      # Mount docker socket jika ingin menjalankan docker commands di dalam Jenkins
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock # Sudah benar untuk akses host docker
     networks:
       - cicd-net
 
