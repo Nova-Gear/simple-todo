@@ -9,7 +9,7 @@ pipeline {
     stages {
         // stage('Checkout') {
         //     steps {
-        //         git branch: 'main', url: 'https://github.com/Nova-Gear/simple-todo.git'
+        //         git branch: 'main', credentialsId: 'github-creds', url: 'https://github.com/Nova-Gear/simple-todo.git'
         //     }
         // }
 
@@ -48,6 +48,7 @@ pipeline {
                     sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner"
                 }
             }
+        }
         stage('Docker Build') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
