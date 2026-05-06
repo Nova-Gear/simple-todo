@@ -71,4 +71,5 @@ spec:
           mountPath: /var/lib/mysql
       volumes:
       - name: mysql-data
-        emptyDir: {} # Gunakan PersistentVolume untuk produksi
+        persistentVolumeClaim:
+          claimName: mysql-pvc
