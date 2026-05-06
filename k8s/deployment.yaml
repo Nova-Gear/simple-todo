@@ -29,47 +29,18 @@ spec:
             memory: "256Mi"
         env:
         - name: DB_HOST
-          value: "todo-db-service" # Nama service MySQL di K8s
+          value: "host.docker.internal" # Gunakan hostname ini untuk mengakses service di luar cluster
         - name: DB_PORT
           value: "3306"
         - name: DB_DATABASE
           value: "todo_app"
         - name: DB_USERNAME
-          value: "todo_user"
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: username
         - name: DB_PASSWORD
-          value: "todo_password"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: todo-db
-spec:
-  selector:
-    matchLabels:
-      app: todo-db
-  template:
-    metadata:
-      labels:
-        app: todo-db
-    spec:
-      containers:
-      - name: mysql
-        image: mysql:8.0
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          value: "root_password"
-        - name: MYSQL_DATABASE
-          value: "todo_app"
-        - name: MYSQL_USER
-          value: "todo_user"
-        - name: MYSQL_PASSWORD
-          value: "todo_password"
-        ports:
-        - containerPort: 3306
-        volumeMounts:
-        - name: mysql-data
-          mountPath: /var/lib/mysql
-      volumes:
-      - name: mysql-data
-        persistentVolumeClaim:
-          claimName: mysql-pvc
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: password

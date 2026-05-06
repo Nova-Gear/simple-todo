@@ -56,48 +56,48 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- MySQL for Simple Todo App ---
-  todo-db:
-    image: mysql:8.0
-    container_name: todo-db
-    restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-todo_app}
-      - MYSQL_USER=${MYSQL_USER:-todo_user}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-todo_password}
-    ports:
-      - "3307:3306"
-    volumes:
-      - todo_mysql_data:/var/lib/mysql
-    networks:
-      - cicd-net
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # # --- MySQL for Simple Todo App ---
+  # todo-db:
+  #   image: mysql:8.0
+  #   container_name: todo-db
+  #   restart: unless-stopped
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
+  #     - MYSQL_DATABASE=${MYSQL_DATABASE:-todo_app}
+  #     - MYSQL_USER=${MYSQL_USER:-todo_user}
+  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD:-todo_password}
+  #   ports:
+  #     - "3307:3306"
+  #   volumes:
+  #     - todo_mysql_data:/var/lib/mysql
+  #   networks:
+  #     - cicd-net
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
-  # --- Simple Todo App (Production-like) ---
-  todo-app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    container_name: todo-app
-    restart: unless-stopped
-    ports:
-      - "5001:5000"
-    environment:
-      - DB_HOST=todo-db
-      - DB_PORT=3306
-      - DB_DATABASE=${MYSQL_DATABASE:-todo_app}
-      - DB_USERNAME=${MYSQL_USER:-todo_user}
-      - DB_PASSWORD=${MYSQL_PASSWORD:-todo_password}
-    networks:
-      - cicd-net
-    depends_on:
-      todo-db:
-        condition: service_healthy
+  # # --- Simple Todo App (Production-like) ---
+  # todo-app:
+  #   build: 
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: todo-app
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5001:5000"
+  #   environment:
+  #     - DB_HOST=todo-db
+  #     - DB_PORT=3306
+  #     - DB_DATABASE=${MYSQL_DATABASE:-todo_app}
+  #     - DB_USERNAME=${MYSQL_USER:-todo_user}
+  #     - DB_PASSWORD=${MYSQL_PASSWORD:-todo_password}
+  #   networks:
+  #     - cicd-net
+  #   depends_on:
+  #     todo-db:
+  #       condition: service_healthy
 
 networks:
   cicd-net:
@@ -109,4 +109,4 @@ volumes:
   sonarqube_extensions:
   sonarqube_logs:
   postgresql_data:
-  todo_mysql_data:
+  # todo_mysql_data:
