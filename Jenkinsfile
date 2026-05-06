@@ -1,5 +1,11 @@
 pipeline {
-    agent any
+    agent {
+        docker { 
+            image 'python:3.10-slim' 
+            // Baris ini memastikan Jenkins bisa menjalankan perintah docker di dalam stage Docker Build nanti
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         SONAR_SCANNER_HOME = tool 'SonarScanner'
