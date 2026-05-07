@@ -34,7 +34,8 @@ pipeline {
                     export DB_PASSWORD=${DB_SECRET_PSW}
                     export DB_DATABASE=${DB_NAME}
                     # pytest tests/ || echo "Tests failed but continuing for demo"
-                    pytest tests/
+                    . venv/bin/activate
+    pytest tests/
                 '''
             }
         }
