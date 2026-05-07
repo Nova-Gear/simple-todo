@@ -481,6 +481,13 @@ kubectl top nodes
 # Jika muncul data CPU/Memory, Metrics Server sudah aktif
 ```
 
+# Simpan credential mysql nya kalau belum ada
+```
+kubectl create secret generic mysql-credentials \
+  --from-literal=username=your_username \
+  --from-literal=password=your_password
+```
+
 ### Step 3: Build Docker Image Lokal
 
 Kubernetes memerlukan image Docker yang tersedia secara lokal:
@@ -491,6 +498,82 @@ docker build -t nova-gear/simple-todo:latest .
 ```
 
 > **Catatan**: Di `deployment.yaml`, `imagePullPolicy` diset ke `Never` sehingga Kubernetes menggunakan image lokal dari Docker Desktop tanpa perlu push ke registry.
+
+## 🚢 GitOps dengan ArgoCD
+
+### Step 1: Install ArgoCD di Kubernetes
+
+```bash
+# Buat namespace khusus ArgoCD
+kubectl create namespace argocd
+
+# Install ArgoCD
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Tunggu semua pods ArgoCD ready (~2-3 menit)
+kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+```
+
+### Step 2: Akses Dashboard ArgoCD
+
+```bash
+# Port-forward ke localhost
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+```
+
+Buka browser → **https://localhost:8081** (terima warning SSL self-signed certificate).
+
+### Step 3: Login ke ArgoCD
+
+```bash
+# Ambil password admin
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+Login:
+- **Username**: `admin`
+- **Password**: output dari perintah di atas
+
+# Kalau Repo nya private, tambahkan credentials ke ArgoCD nya
+
+```bash
+# Kalau Repo nya private, tambahkan credentials ke ArgoCD nya
+
+```bash
+# Tambahkan GitHub credentials
+# Klik "Add credentials" -> "Username with password"
+# Username: github username
+# Password: github password
+# ID: github-creds
+```
+
+### Step 4: Daftarkan Aplikasi
+
+```bash
+kubectl apply -f k8s/argocd-app.yaml
+```
+
+File `argocd-app.yaml` mengkonfigurasi:
+
+```yaml
+spec:
+  source:
+    repoURL: 'https://github.com/Nova-Gear/simple-todo.git'
+    path: k8s                           # Monitor folder k8s/
+  syncPolicy:
+    automated:
+      prune: true                       # Hapus resource yang tidak ada di Git
+      selfHeal: true                    # Kembalikan state jika ada drift
+```
+
+Setelah terdaftar, ArgoCD akan **otomatis men-deploy** setiap perubahan yang di-push ke folder `k8s/` di repository.
+
+### Step 5: Verifikasi di Dashboard
+
+Buka dashboard ArgoCD → Anda akan melihat aplikasi `simple-todo-app` dengan status **Synced** dan **Healthy**.
+
+---
+
 
 ### Step 4: Deploy ke Kubernetes
 
@@ -563,73 +646,6 @@ Berisi **2 Deployment**:
 | `minReplicas` | 2 | Minimum pod yang selalu berjalan |
 | `maxReplicas` | 10 | Maksimum pod saat scaling |
 | `targetCPUUtilization` | 50% | Threshold trigger scaling |
-
----
-
-## 🚢 GitOps dengan ArgoCD
-
-### Step 1: Install ArgoCD di Kubernetes
-
-```bash
-# Buat namespace khusus ArgoCD
-kubectl create namespace argocd
-
-# Install ArgoCD
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Tunggu semua pods ArgoCD ready (~2-3 menit)
-kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
-```
-
-### Step 2: Akses Dashboard ArgoCD
-
-```bash
-# Port-forward ke localhost
-kubectl port-forward svc/argocd-server -n argocd 8081:443
-```
-
-Buka browser → **https://localhost:8081** (terima warning SSL self-signed certificate).
-
-### Step 3: Login ke ArgoCD
-
-```bash
-# Ambil password admin
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-```
-
-Login:
-- **Username**: `admin`
-- **Password**: output dari perintah di atas
-
-Simpan credential mysql nya
-kubectl create secret generic mysql-credentials \
-  --from-literal=username=your_username \
-  --from-literal=password=your_password
-
-### Step 4: Daftarkan Aplikasi
-
-```bash
-kubectl apply -f k8s/argocd-app.yaml
-```
-
-File `argocd-app.yaml` mengkonfigurasi:
-
-```yaml
-spec:
-  source:
-    repoURL: 'https://github.com/Nova-Gear/simple-todo.git'
-    path: k8s                           # Monitor folder k8s/
-  syncPolicy:
-    automated:
-      prune: true                       # Hapus resource yang tidak ada di Git
-      selfHeal: true                    # Kembalikan state jika ada drift
-```
-
-Setelah terdaftar, ArgoCD akan **otomatis men-deploy** setiap perubahan yang di-push ke folder `k8s/` di repository.
-
-### Step 5: Verifikasi di Dashboard
-
-Buka dashboard ArgoCD → Anda akan melihat aplikasi `simple-todo-app` dengan status **Synced** dan **Healthy**.
 
 ---
 
