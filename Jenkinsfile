@@ -32,7 +32,7 @@ pipeline {
                     export DB_PORT=3306
                     export DB_USERNAME=${DB_SECRET_USR}
                     export DB_PASSWORD=${DB_SECRET_PSW}
-                    export DB_DATABASE=${DB_NAME_VALUE}
+                    export DB_DATABASE=${DB_NAME}
                     # pytest tests/ || echo "Tests failed but continuing for demo"
                     pytest tests/
                 '''
