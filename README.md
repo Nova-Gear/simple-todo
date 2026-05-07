@@ -601,6 +601,11 @@ Login:
 - **Username**: `admin`
 - **Password**: output dari perintah di atas
 
+Simpan credential mysql nya
+kubectl create secret generic mysql-credentials \
+  --from-literal=username=your_username \
+  --from-literal=password=your_password
+
 ### Step 4: Daftarkan Aplikasi
 
 ```bash

@@ -4,14 +4,10 @@ pipeline {
     environment {
         SONAR_SCANNER_HOME = tool 'SonarScanner'
         DOCKER_IMAGE = "nova-gear/simple-todo"
+        REPO_URL = 'https://github.com/Nova-Gear/simple-todo.git'
     }
 
     stages {
-        // stage('Checkout') {
-        //     steps {
-        //         git branch: 'main', credentialsId: 'github-creds', url: 'https://github.com/Nova-Gear/simple-todo.git'
-        //     }
-        // }
 
         stage('Environment Setup') {
             steps {
@@ -24,18 +20,19 @@ pipeline {
         }
 
         stage('Run Tests') {
+            environment {
+                // Memanggil ID yang kita buat di Jenkins UI tadi
+                DB_SECRET = credentials('mysql-mac-local')
+                DB_NAME   = credentials('mysql-db-name') // Secret Text berisi nama DB
+            }
+
             steps {
                 sh '''
-                    # Jalankan MySQL sementara untuk testing jika diperlukan.
-                    # Karena kita sudah punya layanan 'todo-db' di docker-compose,
-                    # Jenkins bisa mengaksesnya menggunakan hostname 'todo-db' 
-                    # jika Jenkins berjalan di network yang sama.
-                    . venv/bin/activate
-                    export DB_HOST=todo-db
+                    export DB_HOST=host.docker.internal
                     export DB_PORT=3306
-                    export DB_USERNAME=${MYSQL_USER:-todo_user}
-                    export DB_PASSWORD=${MYSQL_PASSWORD:-todo_password}
-                    export DB_DATABASE=${MYSQL_DATABASE:-todo_app}
+                    export DB_USERNAME=${DB_SECRET_USR}
+                    export DB_PASSWORD=${DB_SECRET_PSW}
+                    export DB_DATABASE=${DB_NAME_VALUE}
                     # pytest tests/ || echo "Tests failed but continuing for demo"
                     pytest tests/
                 '''
@@ -54,6 +51,40 @@ pipeline {
                 sh "docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
                 sh "docker tag ${DOCKER_IMAGE}:${env.BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
             }
+
+            // Opsional: Push ke Docker Hub jika diperlukan agar ArgoCD bisa menarik image-nya
+            /*
+            withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                sh "docker push ${DOCKER_IMAGE}:${env.BUILD_NUMBER}"
+            }
+            */
+        }
+
+        stage('Update Manifest') {
+            steps {
+                // Menggunakan Credentials Jenkins untuk Push ke Git
+                // ID 'github-creds' harus berisi Personal Access Token (PAT) GitHub Anda
+                withCredentials([usernamePassword(credentialsId: 'github-creds', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                    sh """
+                        # Konfigurasi identitas Git
+                        git config user.email "jenkins@ci.com"
+                        git config user.name "Jenkins Automation"
+
+                        # Update tag image di deployment.yaml menggunakan sed
+                        # Mencari baris image: nova-gear/simple-todo:... dan menggantinya dengan tag baru
+                        sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${env.BUILD_NUMBER}|g' deployment.yaml
+
+                        # Commit perubahan
+                        git add deployment.yaml
+                        git commit -m "chore: update image tag to build ${env.BUILD_NUMBER} [skip ci]"
+
+                        # Push kembali ke repository
+                        # Menggunakan format https://username:token@github.com/...
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${REPO_URL} HEAD:main
+                    """
+                }
+            }
         }
 
         // --- Model GitOps dengan ArgoCD ---
@@ -65,16 +96,6 @@ pipeline {
             }
         }
     }
-
-        //     steps {
-        //         withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        //             sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
-        //             sh "docker push ${DOCKER_IMAGE}:${env.BUILD_NUMBER}"
-        //             sh "docker push ${DOCKER_IMAGE}:latest"
-        //         }
-        //     }
-        // }
-        // }
 
     post {
         always {
