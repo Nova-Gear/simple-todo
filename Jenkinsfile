@@ -74,10 +74,10 @@ pipeline {
 
                         # Update tag image di deployment.yaml menggunakan sed
                         # Mencari baris image: nova-gear/simple-todo:... dan menggantinya dengan tag baru
-                        sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${env.BUILD_NUMBER}|g' deployment.yaml
+                        sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${env.BUILD_NUMBER}|g' k8s/deployment.yaml
 
                         # Commit perubahan
-                        git add deployment.yaml
+                        git add k8s/deployment.yaml
                         git commit -m "chore: update image tag to build ${env.BUILD_NUMBER} [skip ci]"
 
                         # Push kembali ke repository
