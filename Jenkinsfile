@@ -82,7 +82,7 @@ pipeline {
 
                         # Push kembali ke repository
                         # Menggunakan format https://username:token@github.com/...
-                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${REPO_URL} HEAD:main
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@${REPO_URL.replace('https://', '')} HEAD:main
                     """
                 }
             }
