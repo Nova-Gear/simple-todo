@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: todo-app
-        image: nova-gear/simple-todo:latest
+        image: nova-gear/simple-todo:8
         imagePullPolicy: Never # Menggunakan image lokal dari Docker Desktop
         ports:
         - containerPort: 5001
