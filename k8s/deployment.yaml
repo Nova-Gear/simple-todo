@@ -29,7 +29,7 @@ spec:
             memory: "256Mi"
         env:
         - name: DB_HOST
-          value: "host.docker.internal" # Gunakan hostname ini untuk mengakses service di luar cluster
+          value: "10.115.204.231" # Gunakan hostname ini untuk mengakses service di luar cluster
         - name: DB_PORT
           value: "3306"
         - name: DB_DATABASE
