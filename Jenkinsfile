@@ -73,7 +73,6 @@ spec:
         timeout(time: 45, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
-        timestamps()
     }
 
     stages {
