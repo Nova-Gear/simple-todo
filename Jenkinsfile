@@ -21,11 +21,11 @@ spec:
     tty: true
     resources:
       requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
         cpu: "500m"
         memory: "512Mi"
-      limits:
-        cpu: "1"
-        memory: "1Gi"
   - name: docker
     image: docker:24-dind
     securityContext:
@@ -33,6 +33,13 @@ spec:
     env:
     - name: DOCKER_TLS_CERTDIR
       value: ""
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
     volumeMounts:
     - name: docker-graph-storage
       mountPath: /var/lib/docker
@@ -40,10 +47,24 @@ spec:
     image: google/cloud-sdk:alpine
     command: ['cat']
     tty: true
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "300m"
+        memory: "256Mi"
   - name: argocd
     image: argoproj/argocd:v2.9.0
     command: ['cat']
     tty: true
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
   volumes:
   - name: docker-graph-storage
     emptyDir: {}
