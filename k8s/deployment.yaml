@@ -1,46 +1,152 @@
+---
+# ═══════════════════════════════════════════════════════════
+#  deployment.yaml
+#  Flask Python 3.10 app + Cloud SQL Auth Proxy (MySQL) sidecar
+#  Repo: https://github.com/Nova-Gear/simple-todo
+# ═══════════════════════════════════════════════════════════
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: todo-app
+  name: simple-todo
+  namespace: todo-app
   labels:
-    app: todo
+    app: simple-todo
+    version: "1.0.0"
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: todo
+      app: simple-todo
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
-        app: todo
+        app: simple-todo
+        version: "1.0.0"
     spec:
+      serviceAccountName: todo-app-sa
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [simple-todo]
+                topologyKey: kubernetes.io/hostname
+
+      # Tunggu Cloud SQL Auth Proxy siap sebelum Flask start
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Menunggu Cloud SQL Auth Proxy (MySQL) ready..."
+              until nc -z 127.0.0.1 3306; do
+                echo "MySQL belum ready, coba lagi..."
+                sleep 2
+              done
+              echo "MySQL siap, Flask bisa start!"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+
       containers:
-      - name: todo-app
-        image: nova-gear/simple-todo:9
-        imagePullPolicy: Never # Menggunakan image lokal dari Docker Desktop
-        ports:
-        - containerPort: 5001
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "200m"
-            memory: "256Mi"
-        env:
-        - name: DB_HOST
-          value: "10.115.204.231" # Gunakan hostname ini untuk mengakses service di luar cluster
-        - name: DB_PORT
-          value: "3306"
-        - name: DB_DATABASE
-          value: "todo_app"
-        - name: DB_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: mysql-credentials
-              key: username
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-credentials
-              key: password
+        # ── Container 1: Flask Python App ────────────────────
+        - name: simple-todo
+          image: asia-southeast2-docker.pkg.dev/project-741337ff-4507-4f1d-8f6/todo-repo/simple-todo:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+              name: http
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: todo-app-config
+            - secretRef:
+                name: todo-app-secret
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # Sesuaikan path /health jika endpoint berbeda di Flask kamu
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: [ALL]
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+        # ── Container 2: Cloud SQL Auth Proxy (MySQL sidecar) ─
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+          args:
+            # Ganti dengan output: terraform output cloudsql_connection_name
+            - "project-741337ff-4507-4f1d-8f6:asia-southeast2:todo-db-08ed2190"
+            - "--port=3306"
+            - "--private-ip"
+            - "--structured-logs"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop: [ALL]
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: simple-todo
