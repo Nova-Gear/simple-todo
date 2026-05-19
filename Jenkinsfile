@@ -21,8 +21,8 @@ spec:
     tty: true
     resources:
       requests:
-        cpu: "200m"
-        memory: "256Mi"
+        cpu: "100m"
+        memory: "128Mi"
       limits:
         cpu: "500m"
         memory: "512Mi"
@@ -35,8 +35,8 @@ spec:
       value: ""
     resources:
       requests:
-        cpu: "200m"
-        memory: "256Mi"
+        cpu: "100m"
+        memory: "128Mi"
       limits:
         cpu: "500m"
         memory: "512Mi"
@@ -49,10 +49,10 @@ spec:
     tty: true
     resources:
       requests:
-        cpu: "100m"
-        memory: "128Mi"
+        cpu: "50m"
+        memory: "64Mi"
       limits:
-        cpu: "300m"
+        cpu: "200m"
         memory: "256Mi"
   - name: argocd
     image: argoproj/argocd:v2.9.0
@@ -60,8 +60,8 @@ spec:
     tty: true
     resources:
       requests:
-        cpu: "100m"
-        memory: "128Mi"
+        cpu: "50m"
+        memory: "64Mi"
       limits:
         cpu: "200m"
         memory: "256Mi"
