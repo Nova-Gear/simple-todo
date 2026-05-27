@@ -47,6 +47,11 @@ spec:
     image: google/cloud-sdk:alpine
     command: ['cat']
     tty: true
+    # FIX: DOCKER_HOST agar gcloud container bisa push via dind container
+    # Containers dalam 1 pod berbagi network namespace → dind expose di localhost:2375
+    env:
+    - name: DOCKER_HOST
+      value: "tcp://localhost:2375"
     resources:
       requests:
         cpu: "50m"
@@ -65,6 +70,21 @@ spec:
       limits:
         cpu: "200m"
         memory: "256Mi"
+  - name: trivy
+    image: aquasec/trivy:latest
+    command: ['cat']
+    tty: true
+    # FIX: DOCKER_HOST agar Trivy bisa scan image lokal dari dind container
+    env:
+    - name: DOCKER_HOST
+      value: "tcp://localhost:2375"
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "128Mi"
+      limits:
+        cpu: "300m"
+        memory: "512Mi"
   volumes:
   - name: docker-graph-storage
     emptyDir: {}
@@ -223,18 +243,45 @@ spec:
         // ── Stage 7: Security Scan (Trivy) ───────────────────
         stage('🔒 Security Scan') {
             steps {
-                container('docker') {
+                container('trivy') {
                     sh """
-                        # Download trivy
-                        wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.tar.gz | tar xz trivy
+                        echo "🔍 Scanning image: ${FULL_IMAGE}"
 
-                        ./trivy image \
+                        # Scan dan simpan hasil ke file
+                        trivy image \
                             --exit-code 0 \
                             --severity HIGH,CRITICAL \
                             --no-progress \
                             --format table \
-                            ${FULL_IMAGE}
+                            --output trivy-report.txt \
+                            ${FULL_IMAGE} || true
+
+                        cat trivy-report.txt
+
+                        # Hitung jumlah vulnerability
+                        CRITICAL_COUNT=\$(grep -c "CRITICAL" trivy-report.txt 2>/dev/null || echo "0")
+                        HIGH_COUNT=\$(grep -c "HIGH" trivy-report.txt 2>/dev/null || echo "0")
+
+                        echo ""
+                        echo "═══════════════════════════════════"
+                        echo "  Trivy Summary:"
+                        echo "  CRITICAL : \${CRITICAL_COUNT}"
+                        echo "  HIGH     : \${HIGH_COUNT}"
+                        echo "═══════════════════════════════════"
+
+                        # Fail build jika ada CRITICAL (strict mode)
+                        if [ "\${CRITICAL_COUNT}" -gt "0" ]; then
+                            echo "❌ Build GAGAL: ditemukan \${CRITICAL_COUNT} CRITICAL vulnerability!"
+                            exit 1
+                        fi
+
+                        echo "✅ Security scan passed (no CRITICAL vulnerabilities)"
                     """
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -247,6 +294,11 @@ spec:
             steps {
                 container('gcloud') {
                     sh """
+                        # FIX: google/cloud-sdk:alpine tidak include docker CLI
+                        # Install docker-cli (bukan daemon — daemon ada di dind container)
+                        # DOCKER_HOST=tcp://localhost:2375 sudah di-set di pod spec
+                        apk add --no-cache docker-cli 2>/dev/null || true
+
                         gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
                         docker push ${FULL_IMAGE}
                         docker push ${REGISTRY}/${IMAGE_NAME}:latest
@@ -270,10 +322,11 @@ spec:
                             git config user.name "Jenkins CI"
 
                             # Update image tag di deployment.yaml
+                            # FIX: path di repo simple-todo adalah k8s/ (bukan infra/k8s/)
                             sed -i "s|${REGISTRY}/${IMAGE_NAME}:.*|${FULL_IMAGE}|g" \
-                                infra/k8s/deployment.yaml
+                                k8s/deployment.yaml
 
-                            git add infra/k8s/deployment.yaml
+                            git add k8s/deployment.yaml
                             git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]" || echo "Nothing to commit"
                             git push origin main
                         """
