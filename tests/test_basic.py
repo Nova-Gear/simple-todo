@@ -17,3 +17,11 @@ def test_index_page(client):
     """Test that the index page serves the SPA HTML."""
     response = client.get("/")
     assert response.status_code == 200
+
+
+def test_health_endpoint(client):
+    """Test that the /health endpoint returns 200 for K8s probes."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "ok"

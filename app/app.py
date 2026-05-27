@@ -3,7 +3,7 @@ Application Factory
 Creates and configures the Flask application instance.
 """
 
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 
 from app.database import initialize_database
@@ -23,6 +23,11 @@ def create_app():
 
     # Register API blueprints
     app.register_blueprint(todo_bp)
+
+    # Health check endpoint for Kubernetes liveness/readiness probes
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
 
     # Serve the frontend SPA
     @app.route("/")
