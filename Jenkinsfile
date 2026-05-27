@@ -383,6 +383,9 @@ spec:
                         gitToolName: 'Default'
                     )]) {
                         sh """
+                            # FIX: google/cloud-sdk:alpine has no git — install it
+                            apk add --no-cache git 2>/dev/null || true
+
                             git config user.email "jenkins@cicd.internal"
                             git config user.name "Jenkins CI"
 
