@@ -385,7 +385,7 @@ spec:
             """
         }
         always {
-            deleteDir()
+            cleanWs(notFailBuild: true)
         }
     }
 }
