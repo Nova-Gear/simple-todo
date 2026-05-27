@@ -15,14 +15,22 @@ metadata:
 spec:
   serviceAccountName: jenkins-sa
   containers:
+  - name: jnlp
+    resources:
+      requests:
+        cpu: "20m"
+        memory: "128Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
   - name: python
     image: python:3.10-slim
     command: ['cat']
     tty: true
     resources:
       requests:
-        cpu: "100m"
-        memory: "128Mi"
+        cpu: "20m"
+        memory: "200Mi"
       limits:
         cpu: "500m"
         memory: "512Mi"
@@ -35,8 +43,8 @@ spec:
       value: ""
     resources:
       requests:
-        cpu: "100m"
-        memory: "128Mi"
+        cpu: "20m"
+        memory: "200Mi"
       limits:
         cpu: "500m"
         memory: "512Mi"
@@ -54,8 +62,8 @@ spec:
       value: "tcp://localhost:2375"
     resources:
       requests:
-        cpu: "50m"
-        memory: "64Mi"
+        cpu: "20m"
+        memory: "50Mi"
       limits:
         cpu: "200m"
         memory: "256Mi"
@@ -65,8 +73,8 @@ spec:
     tty: true
     resources:
       requests:
-        cpu: "50m"
-        memory: "64Mi"
+        cpu: "20m"
+        memory: "50Mi"
       limits:
         cpu: "200m"
         memory: "256Mi"
@@ -80,8 +88,8 @@ spec:
       value: "tcp://localhost:2375"
     resources:
       requests:
-        cpu: "50m"
-        memory: "128Mi"
+        cpu: "20m"
+        memory: "100Mi"
       limits:
         cpu: "300m"
         memory: "512Mi"
