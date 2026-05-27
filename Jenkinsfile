@@ -109,7 +109,7 @@ spec:
         FULL_IMAGE    = "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
         SONAR_PROJECT_KEY = "Simple-Todo"
-        SONAR_HOST_URL    = "http://sonarqube.devops.svc.cluster.local:9000"
+        SONAR_HOST_URL    = "http://sonarqube-sonarqube.devops.svc.cluster.local:9000"
 
         ARGOCD_SERVER  = "argocd-server.argocd.svc.cluster.local"
         ARGOCD_APP     = "simple-todo"
