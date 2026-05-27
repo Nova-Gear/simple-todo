@@ -3,11 +3,15 @@ Database Connection Manager
 Handles MySQL connection pooling and provides a context manager for safe queries.
 """
 
+import time
+import logging
 import pymysql
 from pymysql.cursors import DictCursor
 from contextlib import contextmanager
 
 from app.config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def _build_connect_kwargs():
@@ -59,10 +63,11 @@ def get_cursor():
         connection.close()
 
 
-def initialize_database():
+def initialize_database(max_retries: int = 10, retry_delay: float = 3.0):
     """
     Create the required tables if they don't exist.
-    Called once on application startup.
+    Called once on application startup. Retries on connection failure
+    to handle the Cloud SQL Auth Proxy startup latency.
     """
     create_table_query = """
     CREATE TABLE IF NOT EXISTS todos (
@@ -76,5 +81,22 @@ def initialize_database():
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """
 
-    with get_cursor() as cursor:
-        cursor.execute(create_table_query)
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            with get_cursor() as cursor:
+                cursor.execute(create_table_query)
+            logger.info("Database initialized successfully (attempt %d)", attempt)
+            return
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "Database not ready (attempt %d/%d): %s — retrying in %.0fs",
+                attempt, max_retries, exc, retry_delay,
+            )
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+
+    raise RuntimeError(
+        f"Could not connect to database after {max_retries} attempts"
+    ) from last_error
