@@ -313,9 +313,14 @@ spec:
 
                         cat trivy-report.txt
 
-                        # Hitung jumlah vulnerability
-                        CRITICAL_COUNT=\$(grep -c "CRITICAL" trivy-report.txt 2>/dev/null || echo "0")
-                        HIGH_COUNT=\$(grep -c "HIGH" trivy-report.txt 2>/dev/null || echo "0")
+                        # Parse CRITICAL count from "Total: N (HIGH: X, CRITICAL: Y)" lines
+                        # grep -c "CRITICAL" is wrong — it counts header/footer occurrences
+                        CRITICAL_COUNT=\$(grep "Total:" trivy-report.txt 2>/dev/null | \
+                          grep -oP 'CRITICAL: \\K[0-9]+' | \
+                          awk '{s+=\$1} END{print s+0}' || echo "0")
+                        HIGH_COUNT=\$(grep "Total:" trivy-report.txt 2>/dev/null | \
+                          grep -oP 'HIGH: \\K[0-9]+' | \
+                          awk '{s+=\$1} END{print s+0}' || echo "0")
 
                         echo ""
                         echo "═══════════════════════════════════"
