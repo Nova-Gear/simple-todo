@@ -71,6 +71,12 @@ spec:
     image: quay.io/argoproj/argocd:v3.4.2
     command: ['cat']
     tty: true
+    # FIX: ArgoCD image runs as uid=999 (argocd user); workspace volume is owned
+    # by jnlp uid=1000. Jenkins durable task can't write launch script → "process
+    # apparently never started". Run as root to bypass the permission mismatch.
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
     resources:
       requests:
         cpu: "20m"
