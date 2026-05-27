@@ -411,7 +411,9 @@ spec:
 
                             git add k8s/deployment.yaml
                             git commit -m "ci: update image tag to ${IMAGE_TAG} [skip ci]" || echo "Nothing to commit"
-                            git push origin main
+                            # FIX: checkout scm leaves detached HEAD — no local 'main' branch exists.
+                            # Use HEAD:main to push the current HEAD to the remote main branch.
+                            git push origin HEAD:main
                         """
                     }
                 }
