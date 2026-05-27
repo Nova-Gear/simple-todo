@@ -194,11 +194,16 @@ spec:
                 container('python') {
                     sh '''
                         . .venv/bin/activate
-                        pip install sonar-scanner-cli 2>/dev/null || true
 
-                        # Gunakan sonar-scanner langsung
-                        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-                        unzip -q sonar-scanner-cli-5.0.1.3006-linux.zip
+                        # Install wget/unzip if missing (python:3.10-slim has neither)
+                        apt-get install -y -q wget unzip 2>/dev/null || \
+                          (apt-get update -q && apt-get install -y -q wget unzip)
+
+                        # Gunakan sonar-scanner CLI
+                        if [ ! -d sonar-scanner-5.0.1.3006-linux ]; then
+                          wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+                          unzip -q sonar-scanner-cli-5.0.1.3006-linux.zip
+                        fi
                         export PATH="$PWD/sonar-scanner-5.0.1.3006-linux/bin:$PATH"
 
                         sonar-scanner \
