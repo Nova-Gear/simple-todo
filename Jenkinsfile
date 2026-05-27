@@ -363,7 +363,7 @@ spec:
             ✅ PIPELINE BERHASIL
             Image  : ${FULL_IMAGE}
             Branch : ${env.BRANCH_NAME}
-            Build  : #${BUILD_NUMBER}
+            Build  : #${env.BUILD_NUMBER}
             ════════════════════════════════════
             """
         }
@@ -371,13 +371,13 @@ spec:
             echo """
             ════════════════════════════════════
             ❌ PIPELINE GAGAL
-            Build  : #${BUILD_NUMBER}
-            Log    : ${BUILD_URL}
+            Build  : #${env.BUILD_NUMBER}
+            Log    : ${env.BUILD_URL}
             ════════════════════════════════════
             """
         }
         always {
-            cleanWs()
+            deleteDir()
         }
     }
 }
