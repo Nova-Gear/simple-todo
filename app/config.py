@@ -14,8 +14,10 @@ class Config:
 
     DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
     DB_PORT = int(os.getenv("DB_PORT", 3306))
-    DB_DATABASE = os.getenv("DB_DATABASE", "todo_app")
-    DB_USERNAME = os.getenv("DB_USERNAME", "root")
+    # Support both DB_DATABASE and DB_NAME (K8s ConfigMap uses DB_NAME)
+    DB_DATABASE = os.getenv("DB_DATABASE") or os.getenv("DB_NAME", "todo_app")
+    # Support both DB_USERNAME and DB_USER (K8s Secret uses DB_USER)
+    DB_USERNAME = os.getenv("DB_USERNAME") or os.getenv("DB_USER", "root")
     DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_SOCKET = os.getenv("DB_SOCKET", "")
 
