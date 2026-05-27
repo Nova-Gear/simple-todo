@@ -390,6 +390,11 @@ spec:
                             # not the Jenkins workspace — must cd explicitly before git ops.
                             cd "\${WORKSPACE}"
 
+                            # FIX: git 2.35.2+ refuses cross-user directory access.
+                            # jnlp container checks out code (owned by uid=jenkins),
+                            # gcloud container runs as root → "dubious ownership" error.
+                            git config --global --add safe.directory "\${WORKSPACE}"
+
                             git config --global user.email "jenkins@cicd.internal"
                             git config --global user.name "Jenkins CI"
 
