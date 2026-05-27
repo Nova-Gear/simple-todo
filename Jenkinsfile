@@ -134,9 +134,10 @@ spec:
                         script: 'git log -1 --pretty=%B',
                         returnStdout: true
                     ).trim()
-                    echo "Branch : ${env.BRANCH_NAME}"
-                    echo "Commit : ${env.GIT_COMMIT}"
-                    echo "Message: ${env.GIT_COMMIT_MSG}"
+                    echo "Branch     : ${env.BRANCH_NAME}"
+                    echo "GIT_BRANCH : ${env.GIT_BRANCH}"
+                    echo "Commit     : ${env.GIT_COMMIT}"
+                    echo "Message    : ${env.GIT_COMMIT_MSG}"
                 }
             }
         }
@@ -229,7 +230,7 @@ spec:
                 container('python') {
                     // Poll SonarQube API directly — avoids needing Jenkins global SonarQube config
                     sh """
-                        REPORT=\$(find .sonar -name "report-task.txt" 2>/dev/null | head -1)
+                        REPORT=\$(find . -name "report-task.txt" 2>/dev/null | head -1)
                         if [ -z "\$REPORT" ]; then
                           echo "⚠️  report-task.txt not found — skip Quality Gate"
                           exit 0
@@ -349,7 +350,8 @@ spec:
         // ── Stage 8: Push ke Artifact Registry ───────────────
         stage('📤 Push Image') {
             when {
-                branch 'main'
+                // branch 'main' requires multibranch pipeline; use GIT_BRANCH for regular pipeline
+                expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' || env.BRANCH_NAME == 'main' }
             }
             steps {
                 container('gcloud') {
