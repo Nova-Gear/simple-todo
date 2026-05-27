@@ -433,17 +433,21 @@ spec:
             }
             steps {
                 container('argocd') {
-                    sh """
-                        argocd login ${ARGOCD_SERVER} \
-                            --auth-token ${ARGOCD_TOKEN} \
+                    // FIX: --auth-token expects a JWT API token (argocd account generate-token),
+                    // not the admin password. Use --username/--password instead.
+                    // Single-quoted sh: $VAR resolved by shell (env vars), not Groovy interpolation.
+                    sh '''
+                        argocd login $ARGOCD_SERVER \
+                            --username admin \
+                            --password "$ARGOCD_TOKEN" \
                             --insecure \
                             --grpc-web
 
-                        argocd app sync ${ARGOCD_APP} --timeout 120 --prune
-                        argocd app wait ${ARGOCD_APP} --health --timeout 300
+                        argocd app sync $ARGOCD_APP --timeout 120 --prune
+                        argocd app wait $ARGOCD_APP --health --timeout 300
 
-                        echo "✅ Deploy berhasil: ${ARGOCD_APP} @ ${IMAGE_TAG}"
-                    """
+                        echo "✅ Deploy berhasil: $ARGOCD_APP"
+                    '''
                 }
             }
         }
