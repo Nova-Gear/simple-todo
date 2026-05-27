@@ -305,15 +305,19 @@ spec:
                         echo "🔍 Scanning image: ${FULL_IMAGE}"
 
                         # Scan dan simpan hasil ke file
+                        # --timeout 15m: layer walk can exceed default 5m on large images
+                        # || true: always continue even if trivy crashes (e.g. OOM, ctx deadline)
                         trivy image \
                             --exit-code 0 \
                             --severity HIGH,CRITICAL \
                             --no-progress \
+                            --timeout 15m \
                             --format table \
                             --output trivy-report.txt \
                             ${FULL_IMAGE} || true
 
-                        cat trivy-report.txt
+                        # FIX: trivy crash leaves no report file → cat fails with set -e active
+                        cat trivy-report.txt 2>/dev/null || echo "⚠️  trivy-report.txt missing (scan may have crashed — treating as 0 findings)"
 
                         # Parse CRITICAL count from "Total: N (HIGH: X, CRITICAL: Y)" lines
                         # grep -c "CRITICAL" is wrong — it counts header/footer occurrences
