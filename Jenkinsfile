@@ -386,8 +386,12 @@ spec:
                             # FIX: google/cloud-sdk:alpine has no git — install it
                             apk add --no-cache git 2>/dev/null || true
 
-                            git config user.email "jenkins@cicd.internal"
-                            git config user.name "Jenkins CI"
+                            # FIX: gcloud container starts in /root (WORKDIR from image),
+                            # not the Jenkins workspace — must cd explicitly before git ops.
+                            cd "\${WORKSPACE}"
+
+                            git config --global user.email "jenkins@cicd.internal"
+                            git config --global user.name "Jenkins CI"
 
                             # Update image tag di deployment.yaml
                             # FIX: path di repo simple-todo adalah k8s/ (bukan infra/k8s/)
