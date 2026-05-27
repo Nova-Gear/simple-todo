@@ -230,7 +230,8 @@ spec:
                 container('python') {
                     // Poll SonarQube API directly — avoids needing Jenkins global SonarQube config
                     sh """
-                        REPORT=\$(find . -name "report-task.txt" 2>/dev/null | head -1)
+                        REPORT=\$(find .scannerwork -name "report-task.txt" 2>/dev/null | head -1 || \
+                          find . -maxdepth 3 -name "report-task.txt" -not -path "*/sonar-scanner-*/*" 2>/dev/null | head -1)
                         if [ -z "\$REPORT" ]; then
                           echo "⚠️  report-task.txt not found — skip Quality Gate"
                           exit 0
@@ -372,7 +373,9 @@ spec:
 
         // ── Stage 9: Update image tag di manifest ────────────
         stage('📝 Update Manifest') {
-            when { branch 'main' }
+            when {
+                expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' || env.BRANCH_NAME == 'main' }
+            }
             steps {
                 container('gcloud') {
                     withCredentials([gitUsernamePassword(
@@ -399,7 +402,9 @@ spec:
 
         // ── Stage 10: ArgoCD Sync ─────────────────────────────
         stage('🚀 Deploy via ArgoCD') {
-            when { branch 'main' }
+            when {
+                expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' || env.BRANCH_NAME == 'main' }
+            }
             steps {
                 container('argocd') {
                     sh """
