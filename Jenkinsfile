@@ -68,7 +68,7 @@ spec:
         cpu: "200m"
         memory: "256Mi"
   - name: argocd
-    image: argoproj/argocd:v2.9.0
+    image: quay.io/argoproj/argocd:v3.4.2
     command: ['cat']
     tty: true
     resources:
