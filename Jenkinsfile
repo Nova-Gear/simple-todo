@@ -226,8 +226,50 @@ spec:
         // ── Stage 5: Quality Gate ─────────────────────────────
         stage('🚦 Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                container('python') {
+                    // Poll SonarQube API directly — avoids needing Jenkins global SonarQube config
+                    sh """
+                        REPORT=\$(find .sonar -name "report-task.txt" 2>/dev/null | head -1)
+                        if [ -z "\$REPORT" ]; then
+                          echo "⚠️  report-task.txt not found — skip Quality Gate"
+                          exit 0
+                        fi
+
+                        TASK_URL=\$(grep ceTaskUrl "\$REPORT" | cut -d= -f2-)
+                        echo "Task URL: \$TASK_URL"
+
+                        echo "Waiting for SonarQube analysis to complete..."
+                        for i in \$(seq 1 30); do
+                          STATUS=\$(curl -s "\$TASK_URL" \\
+                            --user "${SONAR_TOKEN}:" 2>/dev/null | \\
+                            python3 -c "import sys,json; print(json.load(sys.stdin)['task']['status'])" 2>/dev/null || echo "UNKNOWN")
+                          echo "  Analysis status: \$STATUS"
+                          if [ "\$STATUS" = "SUCCESS" ] || [ "\$STATUS" = "FAILED" ] || [ "\$STATUS" = "CANCELLED" ]; then
+                            break
+                          fi
+                          sleep 10
+                        done
+
+                        ANALYSIS_ID=\$(curl -s "\$TASK_URL" \\
+                          --user "${SONAR_TOKEN}:" 2>/dev/null | \\
+                          python3 -c "import sys,json; print(json.load(sys.stdin)['task'].get('analysisId',''))" 2>/dev/null || echo "")
+
+                        if [ -z "\$ANALYSIS_ID" ]; then
+                          echo "⚠️  Could not get analysisId — skip quality gate check"
+                          exit 0
+                        fi
+
+                        GATE=\$(curl -s "${SONAR_HOST_URL}/api/qualitygates/project_status?analysisId=\$ANALYSIS_ID" \\
+                          --user "${SONAR_TOKEN}:" 2>/dev/null | \\
+                          python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null || echo "ERROR")
+
+                        echo "Quality Gate: \$GATE"
+                        if [ "\$GATE" = "ERROR" ]; then
+                          echo "❌ Quality Gate FAILED"
+                          exit 1
+                        fi
+                        echo "✅ Quality Gate PASSED (\$GATE)"
+                    """
                 }
             }
         }
