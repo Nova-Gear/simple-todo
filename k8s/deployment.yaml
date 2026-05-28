@@ -50,7 +50,7 @@ spec:
       containers:
         # ── Container 1: Flask Python App ────────────────────
         - name: simple-todo
-          image: asia-southeast2-docker.pkg.dev/project-741337ff-4507-4f1d-8f6/todo-repo/simple-todo:30-c01a31b
+          image: asia-southeast2-docker.pkg.dev/project-741337ff-4507-4f1d-8f6/todo-repo/simple-todo:31-b38e6cf
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
