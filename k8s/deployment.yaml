@@ -105,9 +105,7 @@ spec:
             # Cloud SQL connection name (format: project:region:instance)
             - "project-741337ff-4507-4f1d-8f6:asia-southeast2:todo-db-12d5b3f8"
             - "--port=3306"
-            # NOTE: --private-ip removed; GKE (vpc-dmz) cannot reach Cloud SQL PSA
-            # range in vpc-secure due to non-transitive VPC peering. Using public
-            # IP via Cloud SQL Auth Proxy TLS tunnel (Workload Identity + IAM auth).
+            - "--private-ip"
             - "--structured-logs"
           resources:
             requests:
