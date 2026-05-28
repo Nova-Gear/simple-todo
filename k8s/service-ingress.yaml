@@ -18,6 +18,7 @@ spec:
     - name: http
       port: 80
       targetPort: 5000   # Flask port
+      nodePort: 32717    # Pinned — harus cocok dengan BackendConfig.healthCheck.port
       protocol: TCP
 
 ---
@@ -52,9 +53,8 @@ spec:
     name: "todo-waf-policy"
 
   # Health check ke Flask /health endpoint
-  # FIX: port harus NodePort (30928), bukan app port (5000).
-  # GCE LB health check hits node_ip:port langsung — port 5000 tidak
-  # ter-expose di node, hanya di dalam pod. NodePort 30928 yang iptables-forward.
+  # port harus NodePort — GCE LB health check hits node_ip:NodePort langsung.
+  # Harus cocok dengan service.ports[].nodePort (pinned di 32717).
   healthCheck:
     checkIntervalSec: 10
     timeoutSec: 5
@@ -62,7 +62,7 @@ spec:
     unhealthyThreshold: 3
     type: HTTP
     requestPath: /health
-    port: 30928
+    port: 32717
 
   connectionDraining:
     drainingTimeoutSec: 60
