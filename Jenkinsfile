@@ -144,6 +144,13 @@ spec:
                     echo "GIT_BRANCH : ${env.GIT_BRANCH}"
                     echo "Commit     : ${env.GIT_COMMIT}"
                     echo "Message    : ${env.GIT_COMMIT_MSG}"
+                    // FIX: Jenkins SCM polling doesn't honour [skip ci] natively.
+                    // Stage 9 pushes image-tag commits with [skip ci]; without this
+                    // check the pipeline loops indefinitely (each build triggers the next).
+                    if (env.GIT_COMMIT_MSG.contains('[skip ci]')) {
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Skipping: commit message contains [skip ci]')
+                    }
                 }
             }
         }
