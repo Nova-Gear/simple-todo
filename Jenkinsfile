@@ -432,21 +432,39 @@ spec:
                 expression { env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main' || env.BRANCH_NAME == 'main' }
             }
             steps {
-                container('argocd') {
-                    // FIX: --auth-token expects a JWT API token (argocd account generate-token),
-                    // not the admin password. Use --username/--password instead.
-                    // Single-quoted sh: $VAR resolved by shell (env vars), not Groovy interpolation.
+                // FIX: argocd CLI --auth-token + --grpc-web causes EOF (interactive fallback).
+                // Use ArgoCD REST API directly via curl — confirmed to work with the JWT token.
+                // Run in gcloud container (has curl); argocd container kept for potential future use.
+                container('gcloud') {
                     sh '''
-                        argocd login $ARGOCD_SERVER \
-                            --username admin \
-                            --password "$ARGOCD_TOKEN" \
-                            --insecure \
-                            --grpc-web
+                        ARGOCD_BASE="https://$ARGOCD_SERVER"
 
-                        argocd app sync $ARGOCD_APP --timeout 120 --prune
-                        argocd app wait $ARGOCD_APP --health --timeout 300
+                        echo "▶ Syncing ArgoCD app: $ARGOCD_APP"
+                        SYNC=$(curl -sk -X POST \
+                            -H "Authorization: Bearer $ARGOCD_TOKEN" \
+                            -H "Content-Type: application/json" \
+                            -d "{\\"prune\\":true,\\"revision\\":\\"HEAD\\"}" \
+                            "$ARGOCD_BASE/api/v1/applications/$ARGOCD_APP/sync")
+                        echo "Sync response: $(echo $SYNC | head -c 200)"
 
-                        echo "✅ Deploy berhasil: $ARGOCD_APP"
+                        echo "⏳ Waiting for app health (up to 5 min)..."
+                        for i in $(seq 1 30); do
+                            STATUS=$(curl -sk \
+                                -H "Authorization: Bearer $ARGOCD_TOKEN" \
+                                "$ARGOCD_BASE/api/v1/applications/$ARGOCD_APP" | \
+                                python3 -c "import sys,json; d=json.load(sys.stdin); \
+                                    h=d.get(\'status\',{}).get(\'health\',{}).get(\'status\',\'Unknown\'); \
+                                    s=d.get(\'status\',{}).get(\'sync\',{}).get(\'status\',\'Unknown\'); \
+                                    print(f\'health={h} sync={s}\')" 2>/dev/null || echo "health=Unknown sync=Unknown")
+                            echo "  Attempt $i: $STATUS"
+                            if echo "$STATUS" | grep -q "health=Healthy" && echo "$STATUS" | grep -q "sync=Synced"; then
+                                echo "✅ Deploy berhasil: $ARGOCD_APP is Healthy+Synced"
+                                exit 0
+                            fi
+                            sleep 10
+                        done
+                        echo "⚠️  App did not reach Healthy+Synced in 5 min — check ArgoCD UI"
+                        exit 1
                     '''
                 }
             }
