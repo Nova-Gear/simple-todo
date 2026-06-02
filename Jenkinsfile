@@ -450,7 +450,7 @@ spec:
                         SYNC=$(curl -sk -X POST \
                             -H "Authorization: Bearer $ARGOCD_TOKEN" \
                             -H "Content-Type: application/json" \
-                            -d "{\\"prune\\":true,\\"revision\\":\\"HEAD\\"}" \
+                            -d "{\\"prune\\":true,\\"revision\\":\\"main\\"}" \
                             "$ARGOCD_BASE/api/v1/applications/$ARGOCD_APP/sync")
                         echo "Sync response: $(echo $SYNC | head -c 200)"
 
