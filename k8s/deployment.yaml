@@ -103,7 +103,7 @@ spec:
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
           args:
             # Cloud SQL connection name (format: project:region:instance)
-            - "project-741337ff-4507-4f1d-8f6:asia-southeast2:todo-db-d7af6873"
+            - "project-741337ff-4507-4f1d-8f6:asia-southeast2:todo-db-2c2f8998"
             - "--port=3306"
             - "--psc"
             - "--structured-logs"
